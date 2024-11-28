@@ -60,10 +60,20 @@ jobs:
       - name: Install
         run: pip3 install -r requirements.txt
 
-      - name: Process
-        run: python -u subscribe/process.py --overwrite
+      - name: Process Nodes
+        run: |
+          # 执行处理脚本
+          python -u subscribe/process.py --overwrite
+          
+          # 调试信息
+          echo "当前目录结构："
+          ls -la
+          echo "data 目录结构："
+          ls -la data || true
+          echo "根目录下的 yaml 文件："
+          find . -name "*.yaml"
 
-      - name: Deploy to server
+      - name: Deploy to Server
         run: |
           # 检查必需的环境变量
           if [ -z "$SERVER_SSH_KEY" ] || [ -z "$SERVER_HOST" ] || [ -z "$SERVER_USERNAME" ] || [ -z "$SERVER_PORT" ]; then
@@ -75,15 +85,19 @@ jobs:
           echo "$SERVER_SSH_KEY" > private_key.pem
           chmod 600 private_key.pem
 
-          # 检查源文件是否存在
-          if [ ! -f "./data/clash.yaml" ]; then
-            echo "错误：clash.yaml 文件不存在于 data 目录"
+          # 查找 clash.yaml 文件
+          CLASH_FILE=$(find . -name "clash.yaml" | head -n 1)
+          
+          if [ -z "$CLASH_FILE" ]; then
+            echo "错误：未找到 clash.yaml 文件"
             exit 1
+          else
+            echo "找到配置文件：$CLASH_FILE"
           fi
 
           echo "开始传输文件..."
           rsync --info=progress2 -avz -e "ssh -i private_key.pem -p $SERVER_PORT -o StrictHostKeyChecking=no" \
-            ./data/clash.yaml $SERVER_USERNAME@$SERVER_HOST:/data/files
+            "$CLASH_FILE" $SERVER_USERNAME@$SERVER_HOST:/data/files/clash.yaml
           
           if [ $? -eq 0 ]; then
             echo "文件传输成功"
