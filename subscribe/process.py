@@ -239,6 +239,11 @@ def load_configs(
             return False
 
         items = pushtool.filter_push(push_conf=storage.get("items", {}))
+
+        # 添加日志
+        logger.info(f"Storage config: {storage}")
+        logger.info(f"Push items: {items}")
+        
         for name, group in groups.items():
             name = utils.trim(name)
 
