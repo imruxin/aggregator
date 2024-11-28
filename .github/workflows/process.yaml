@@ -65,13 +65,26 @@ jobs:
           # 执行处理脚本
           python -u subscribe/process.py --overwrite
           
-          # 调试信息
-          echo "当前目录结构："
+          echo "=== 目录结构检查 ==="
+          echo "当前工作目录: $(pwd)"
+          
+          echo "\n=== 根目录内容 ==="
           ls -la
-          echo "data 目录结构："
-          ls -la data || true
-          echo "根目录下的 yaml 文件："
-          find . -name "*.yaml"
+          
+          echo "\n=== data 目录内容（如果存在）==="
+          if [ -d "data" ]; then
+            ls -la data/
+          else
+            echo "data 目录不存在"
+          fi
+          
+          echo "\n=== 查找所有 yaml 文件 ==="
+          find . -type f -name "*.yaml" -o -name "*.yml"
+          
+          echo "\n=== 检查日志文件 ==="
+          if [ -f "process.log" ]; then
+            tail -n 50 process.log
+          fi
 
       - name: Deploy to Server
         run: |
@@ -85,8 +98,14 @@ jobs:
           echo "$SERVER_SSH_KEY" > private_key.pem
           chmod 600 private_key.pem
 
-          # 查找 clash.yaml 文件
-          CLASH_FILE=$(find . -name "clash.yaml" | head -n 1)
+          # 添加更多文件查找信息
+          echo "=== 查找 clash.yaml ==="
+          CLASH_FILES=$(find . -type f -name "clash.yaml" -o -name "clash.yml")
+          echo "找到的文件:"
+          echo "$CLASH_FILES"
+          
+          # 选择第一个找到的文件
+          CLASH_FILE=$(echo "$CLASH_FILES" | head -n 1)
           
           if [ -z "$CLASH_FILE" ]; then
             echo "错误：未找到 clash.yaml 文件"
