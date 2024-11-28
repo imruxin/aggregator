@@ -135,3 +135,32 @@ def convert(binname: str, artifact: str = "") -> bool:
 
 def getpath() -> str:
     return os.path.join(PATH, "subconverter")
+
+
+def get_clash_content(nodes: list, group: dict) -> str:
+    """获取 clash 配置内容"""
+    try:
+        # 使用临时文件进行转换
+        temp_file = f"temp_{int(time.time())}.yml"
+        success = generate_conf(
+            filepath=temp_file,
+            name=group.get("name", "default"),
+            source=nodes,
+            dest="clash.yaml",
+            target="clash",
+            emoji=True,
+            list_only=True
+        )
+        
+        if success and os.path.exists("clash.yaml"):
+            with open("clash.yaml", "r", encoding="utf8") as f:
+                content = f.read()
+            # 清理临时文件
+            os.remove(temp_file)
+            if os.path.exists("clash.yaml"):
+                os.remove("clash.yaml")
+            return content
+    except Exception as e:
+        logger.error(f"Error generating clash content: {str(e)}")
+    return None
+    
