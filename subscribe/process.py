@@ -240,9 +240,27 @@ def load_configs(
 
         items = pushtool.filter_push(push_conf=storage.get("items", {}))
 
-        # 添加日志
-        logger.info(f"Storage config: {storage}")
-        logger.info(f"Push items: {items}")
+        # 添加本地文件写入逻辑
+        try:
+            # 确保 data 目录存在
+            os.makedirs("data", exist_ok=True)
+            
+            # 获取 clash 配置内容
+            for name, group in groups.items():
+                targets = group.get("targets", {})
+                for category, storage_name in targets.items():
+                    if category.lower() == "clash":
+                        # 使用相同的配置生成 clash 文件
+                        clash_content = subconverter.get_clash_content(nodes, group)
+                        if clash_content:
+                            # 写入本地文件
+                            local_path = os.path.join("data", "clash.yaml")
+                            with open(local_path, "w", encoding="utf8") as f:
+                                f.write(clash_content)
+                            logger.info(f"Successfully wrote local clash file to: {local_path}")
+                        break
+        except Exception as e:
+            logger.error(f"Error writing local clash file: {str(e)}")
         
         for name, group in groups.items():
             name = utils.trim(name)
