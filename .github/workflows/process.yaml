@@ -59,22 +59,13 @@ jobs:
       - name: Process
         run: python -u subscribe/process.py --overwrite
 
-      - name: Setup SSH
+      - name: Deploy to server
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          # 创建 SSH 配置文件
-          echo "Host target_server
-            HostName ${{ secrets.SERVER_HOST }}
-            User ${{ secrets.SERVER_USERNAME }}
-            Port ${{ secrets.SERVER_PORT }}
-            IdentityFile ~/.ssh/id_rsa
-            StrictHostKeyChecking no" > ~/.ssh/config
-
-      - name: Sync clash.yaml
-        run: |
-          scp -P ${{ secrets.SERVER_PORT }} ./clash.yaml ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}:/data/files
-          
+          echo "$SERVER_SSH_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          echo "使用 rsync 传输文件"
+          rsync --info=progress2 -avz -e "ssh -i private_key.pem -p $SERVER_PORT -o StrictHostKeyChecking=no" ./clash.yaml $SERVER_USERNAME@$SERVER_HOST:/data/files
+          echo "传输完成"
+           
       - name: Timestamp
         run: date
