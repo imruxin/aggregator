@@ -2,7 +2,8 @@ name: Collect
 on:
   # executed once a week on Sundays at 00:00
   schedule:
-    - cron: "0 0 * * 1"
+    - cron: "10 03 * * *"
+    - cron: "10 11 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -25,6 +26,12 @@ env:
 
   # include special protocols, such as vless hysteria2 and hysteria
   ENABLE_SPECIAL_PROTOCOLS: ${{ vars.ENABLE_SPECIAL_PROTOCOLS }}
+
+  # 添加新的环境变量
+  SERVER_HOST: ${{ secrets.SERVER_HOST }}
+  SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+  SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+  SERVER_PORT: ${{ secrets.SERVER_PORT }}
 
 jobs:
   process:
@@ -66,6 +73,14 @@ jobs:
 
       - name: Collect
         run: python -u subscribe/collect.py --all --overwrite --skip
+
+      - name: Deploy to server
+        run: |
+          echo "$SERVER_SSH_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          echo "使用 rsync 传输文件"
+          rsync -avz -e "ssh -i private_key.pem -p $SERVER_PORT -o StrictHostKeyChecking=no" ./clash.yaml $SERVER_USERNAME@$SERVER_HOST:/data/files
+          echo "传输完成"
 
       - name: Timestamp
         run: date
