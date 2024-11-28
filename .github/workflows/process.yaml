@@ -1,10 +1,14 @@
 name: Process
 on:
   schedule:
-    - cron: "10 03 * * *"
-    - cron: "10 11 * * *"
-  workflow_dispatch:
+    - cron: "10 03 * * *"    # 每天 03:10 执行
+    - cron: "10 11 * * *"    # 每天 11:10 执行
+  workflow_dispatch:         # 支持手动触发
 
+concurrency:
+  group: ${{ github.repository }}
+  cancel-in-progress: true   # 新工作流会取消正在进行的工作流
+  
 env:
   # time zone
   TZ: Asia/Shanghai
@@ -61,11 +65,34 @@ jobs:
 
       - name: Deploy to server
         run: |
+          # 检查必需的环境变量
+          if [ -z "$SERVER_SSH_KEY" ] || [ -z "$SERVER_HOST" ] || [ -z "$SERVER_USERNAME" ] || [ -z "$SERVER_PORT" ]; then
+            echo "错误：缺少必需的服务器配置环境变量"
+            exit 1
+          fi
+
+          # 准备 SSH 密钥
           echo "$SERVER_SSH_KEY" > private_key.pem
           chmod 600 private_key.pem
-          echo "使用 rsync 传输文件"
-          rsync --info=progress2 -avz -e "ssh -i private_key.pem -p $SERVER_PORT -o StrictHostKeyChecking=no" ./clash.yaml $SERVER_USERNAME@$SERVER_HOST:/data/files
-          echo "传输完成"
+
+          # 检查源文件是否存在
+          if [ ! -f "./data/clash.yaml" ]; then
+            echo "错误：clash.yaml 文件不存在于 data 目录"
+            exit 1
+          fi
+
+          echo "开始传输文件..."
+          rsync --info=progress2 -avz -e "ssh -i private_key.pem -p $SERVER_PORT -o StrictHostKeyChecking=no" \
+            ./data/clash.yaml $SERVER_USERNAME@$SERVER_HOST:/data/files
+          
+          if [ $? -eq 0 ]; then
+            echo "文件传输成功"
+          else
+            echo "文件传输失败"
+            exit 1
+          fi
            
       - name: Timestamp
-        run: date
+        run: |
+          echo "工作流完成时间："
+          date "+%Y-%m-%d %H:%M:%S"
