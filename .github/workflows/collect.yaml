@@ -76,11 +76,28 @@ jobs:
 
       - name: Deploy to server
         run: |
-          echo "$SERVER_SSH_KEY" > private_key.pem
-          chmod 600 private_key.pem
-          echo "使用 rsync 传输文件"
-          rsync -avz -e "ssh -i private_key.pem -p $SERVER_PORT -o StrictHostKeyChecking=no" ./clash.yaml $SERVER_USERNAME@$SERVER_HOST:/data/files
-          echo "传输完成"
+          # 检查 clash.yaml 是否存在
+          if [ -f "data/clash.yaml" ]; then
+            echo "找到 clash.yaml 文件，开始部署..."
+            
+            # 设置 SSH 密钥
+            echo "$SERVER_SSH_KEY" > private_key.pem
+            chmod 600 private_key.pem
+            
+            # 执行同步
+            rsync -avz -e "ssh -i private_key.pem -p $SERVER_PORT -o StrictHostKeyChecking=no" \
+              "data/clash.yaml" $SERVER_USERNAME@$SERVER_HOST:/data/files/clash.yaml
+            
+            if [ $? -eq 0 ]; then
+              echo "✅ clash.yaml 已成功部署到服务器"
+            else
+              echo "❌ 部署失败"
+              exit 1
+            fi
+          else
+            echo "⚠️ 未找到 clash.yaml 文件，跳过部署步骤"
+            # 不将此视为错误，继续执行后续步骤
+          fi
 
       - name: Timestamp
         run: date
