@@ -768,7 +768,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "-e",
-        "--envrionment",
+        "--environment",
         type=str,
         required=False,
         default=".env",
@@ -848,6 +848,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    utils.load_dotenv(args.envrionment)
+    utils.load_dotenv(args.environment)
 
     aggregate(args=args)
